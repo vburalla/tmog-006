@@ -1,7 +1,9 @@
 package org.tfoc;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Your Codec object will be instantiated and called as such:
@@ -17,28 +19,25 @@ public class Codec {
     public String serialize(TreeNode root) {
 
         StringBuilder sb = new StringBuilder("[");
-        if(root != null) {
+        if (root != null) {
             sb.append(root.val);
             LinkedList<TreeNode> nextNodes = new LinkedList<>();
-            if(root.left != null)
-                nextNodes.add(root.left);
-            if(root.right!=null)
-                nextNodes.add(root.right);
-            {
-                LinkedList<TreeNode> nextLevelNodes = new LinkedList<>();
-                while(!nextNodes.isEmpty()) {
-                    TreeNode node = nextNodes.pop();
-                    if(node!=null) {
-                        sb.append(node.val).append(",");
-                        nextLevelNodes.add(node.left);
-                        nextLevelNodes.add(node.right);
-                    } else {
-                        sb.append("null,");
-                    }
+            nextNodes.add(root.left);
+            nextNodes.add(root.right);
+            LinkedList<TreeNode> nextLevelNodes = new LinkedList<>();
+            while (!nextNodes.isEmpty()) {
+                TreeNode node = nextNodes.pop();
+                if (node != null) {
+                    sb.append(",").append(node.val);
+                    nextLevelNodes.add(node.left);
+                    nextLevelNodes.add(node.right);
+                } else {
+                    sb.append(",null");
                 }
-                if(!nextLevelNodes.isEmpty())
-                    nextNodes.addAll(nextLevelNodes);
-                nextLevelNodes.clear();
+                if (nextNodes.isEmpty() && !nextLevelNodes.stream().allMatch(n -> n==null)) {
+                    nextNodes.addAll(nextLevelNodes.stream().collect(Collectors.toList()));
+                    nextLevelNodes.clear();
+                }
             }
         }
         sb.append("]");
@@ -49,11 +48,36 @@ public class Codec {
      * Decodes your encoded data to tree.
      */
     public TreeNode deserialize(String data) {
-        String[] values = data.replace("[","").replace("]","").split(",");
+        String[] values = data.replace("[", "").replace("]", "").split(",");
         TreeNode root = null;
         int i = 0;
-        if(values.length > 0) {
+        if (values.length > 0) {
             root = new TreeNode(Integer.valueOf(values[i]));
+            i++;
+            List<TreeNode> currentLevelNodes = new ArrayList<>();
+            List<TreeNode> nextLevelNodes = new ArrayList<>();
+            currentLevelNodes.add(root);
+            while (i < values.length) {
+                if (currentLevelNodes.isEmpty()) {
+                    currentLevelNodes = nextLevelNodes.stream().collect(Collectors.toList());
+                    nextLevelNodes.clear();
+                }
+                TreeNode currentNode = currentLevelNodes.remove(0);
+                if (values[i].equals("null"))
+                    currentNode.left = null;
+                else {
+                    currentNode.left = new TreeNode(Integer.parseInt(values[i]));
+                    nextLevelNodes.add(currentNode.left);
+                }
+                i++;
+                if (values[i].equals("null"))
+                    currentNode.right = null;
+                else {
+                    currentNode.right = new TreeNode(Integer.parseInt(values[i]));
+                    nextLevelNodes.add(currentNode.right);
+                }
+                i++;
+            }
         }
         return root;
     }
